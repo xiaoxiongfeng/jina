@@ -1,6 +1,6 @@
 import os
 from types import SimpleNamespace
-from typing import Dict, TypeVar, Optional, Callable
+from typing import Dict, TypeVar, Type, Optional
 
 from .decorators import store_init_kwargs, wrap_func
 from .metas import get_default_metas
@@ -88,11 +88,19 @@ class BaseExecutor(JAMLCompatible, metaclass=ExecutorType):
         self._add_requests(requests)
         self._add_runtime_args(runtime_args)
 
-    def _add_runtime_args(self, _runtime_args: Optional[Dict]):
-        if _runtime_args:
-            self.runtime_args = SimpleNamespace(**_runtime_args)
-        else:
-            self.runtime_args = SimpleNamespace()
+    def __init__(self, metas=None, requests=None, *args, **kwargs):
+        super().__init__()
+        if metas is None:
+            metas = {}
+        if requests is not None:
+            requests = {}
+
+        self._add_metas(metas)
+        self._add_requests(requests)
+
+    def _add_requests(self, _requests: Optional[Dict]):
+        if not _requests:
+            return
 
     def _add_requests(self, _requests: Optional[Dict]):
         request_mapping = {}  # type: Dict[str, Callable]
@@ -167,7 +175,18 @@ class BaseExecutor(JAMLCompatible, metaclass=ExecutorType):
 
     def close(self) -> None:
         """
-        Always invoked as executor is destroyed.
+        Release the resources as executor is destroyed, need to be overridden
+        """
+        pass
+
+    @classmethod
+    def _inject_config(
+        cls: Type[AnyExecutor],
+        raw_config: Dict,
+        *args,
+        **kwargs,
+    ) -> Dict:
+        """Inject config into the raw_config before loading into an object.
 
         You can write destructor & saving logic here.
         """
@@ -195,24 +214,14 @@ class BaseExecutor(JAMLCompatible, metaclass=ExecutorType):
 
         :return: returns the workspace of the shard of this Executor.
         """
-        if getattr(self.runtime_args, 'workspace', None):
-            complete_workspace = os.path.join(
-                self.runtime_args.workspace, self.metas.name
-            )
-            replica_id = getattr(self.runtime_args, 'replica_id', None)
-            pea_id = getattr(self.runtime_args, 'pea_id', None)
-            if replica_id is not None and replica_id != -1:
-                complete_workspace = os.path.join(complete_workspace, str(replica_id))
-            if pea_id is not None and pea_id != -1:
-                complete_workspace = os.path.join(complete_workspace, str(pea_id))
-            return os.path.abspath(complete_workspace)
-        elif self.metas.workspace is not None:
-            return os.path.abspath(self.metas.workspace)
+
+        pea_id = self.metas.pea_id
+        replica_id = self.metas.replica_id
+        workspace_folder = self.metas.workspace
+        workspace_name = self.metas.name
+        if replica_id == -1:
+            return os.path.join(workspace_folder, f'{workspace_name}-{pea_id}')
         else:
-            raise Exception('can not find metas.workspace or runtime_args.workspace')
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
+            return os.path.join(
+                workspace_folder, f'{workspace_name}-{replica_id}-{pea_id}'
+            )

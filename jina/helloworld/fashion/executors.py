@@ -49,6 +49,7 @@ class MyIndexer(Executor):
 class MyEncoder(Executor):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
         np.random.seed(1337)
         # generate a random orthogonal matrix
         H = np.random.rand(784, 64)
@@ -62,7 +63,7 @@ class MyEncoder(Executor):
         embeds = (content.reshape([-1, 784]) / 255) @ self.oth_mat
         for doc, embed in zip(docs, embeds):
             doc.embedding = embed
-            doc.convert_image_blob_to_uri(width=28, height=28)
+            doc.convert_blob_to_uri(width=self._width, height=self._height)
             doc.pop('blob')
 
 

@@ -4,7 +4,7 @@ from typing import Tuple, Generator, BinaryIO, TextIO
 
 import numpy as np
 
-from jina.logging import JinaLogger
+from ...logging import JinaLogger
 
 BYTE_PADDING = 4
 
@@ -108,8 +108,8 @@ def import_metas(path: str, pea_id: str):
 
 def _ids_gen(path: str):
     with open(os.path.join(path, 'ids'), 'r') as ids_fh:
-        for l in ids_fh:
-            yield l.strip()
+        for line in ids_fh:
+            yield line.strip()
 
 
 def _vecs_gen(path: str):

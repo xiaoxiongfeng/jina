@@ -42,8 +42,8 @@ function pub_pypi {
 }
 
 function git_commit {
-    git config --local user.email "dev-bot@jina.ai"
-    git config --local user.name "Jina Dev Bot"
+#    git config --local user.email "dev-bot@jina.ai"
+#    git config --local user.name "Jina Dev Bot"
     git tag "v$RELEASE_VER" -m "$(cat ./CHANGELOG.tmp)"
     git add $INIT_FILE ./CHANGELOG.md jina/hub jina/resources/extra-requirements.txt
     git commit -m "chore(version): the next version will be $NEXT_VER" -m "build($RELEASE_ACTOR): $RELEASE_REASON"
@@ -97,7 +97,7 @@ if [[ $1 == "final" ]]; then
   RELEASE_ACTOR="$3"
   update_ver_line "$VER_TAG" "$VER_TAG_NEXT" "$INIT_FILE"
   git_commit
-  slack_notif
+#  slack_notif
 else
   # as a prerelease, pypi update only, no back commit etc.
   COMMITS_SINCE_LAST_VER=$(git rev-list $LAST_VER..HEAD --count)

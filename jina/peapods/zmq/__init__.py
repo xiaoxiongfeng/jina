@@ -16,7 +16,6 @@ from ...helper import colored, random_identity, get_readable_size, get_or_reuse_
 from ...importer import ImportExtensions
 from ...logging.predefined import default_logger
 from ...logging.logger import JinaLogger
-from ...proto import jina_pb2
 from ...types.message import Message
 from ...types.message.common import ControlMessage
 from ...types.request import Request
@@ -63,8 +62,11 @@ class Zmqlet:
         self.is_polling_paused = False
         self.opened_socks = []  # this must be here for `close()`
         self.ctx, self.in_sock, self.out_sock, self.ctrl_sock = self._init_sockets()
+        self.in_sock_type = self.in_sock.type
+        if self.out_sock is not None:
+            self.out_sock_type = self.out_sock.type
+        self.ctrl_sock_type = self.ctrl_sock.type
         self._register_pollin()
-
         self.opened_socks.extend([self.in_sock, self.ctrl_sock])
         if self.out_sock is not None:
             self.opened_socks.append(self.out_sock)
@@ -72,11 +74,11 @@ class Zmqlet:
         self.out_sockets = {}
 
     def _register_pollin(self):
-        """Register :attr:`in_sock`, :attr:`ctrl_sock` and :attr:`out_sock` (if :attr:`out_sock.type` is zmq.ROUTER) in poller."""
+        """Register :attr:`in_sock`, :attr:`ctrl_sock` and :attr:`out_sock` (if :attr:`out_sock_type` is zmq.ROUTER) in poller."""
         self.poller = zmq.Poller()
         self.poller.register(self.in_sock, zmq.POLLIN)
         self.poller.register(self.ctrl_sock, zmq.POLLIN)
-        if self.out_sock is not None and self.out_sock.type == zmq.ROUTER:
+        if self.out_sock is not None and self.out_sock_type == zmq.ROUTER:
             self.poller.register(self.out_sock, zmq.POLLIN)
 
     def pause_pollin(self):
@@ -255,7 +257,7 @@ class Zmqlet:
         return out_sock
 
     def get_dynamic_next_routes(self, message):
-        routing_graph = RoutingGraph(message.envelope.routes)
+        routing_graph = RoutingGraph(message.envelope.targets)
         next_targets = routing_graph.get_next_targets()
         next_routes = []
         for target in next_targets:
@@ -294,7 +296,7 @@ class Zmqlet:
         self.bytes_sent += send_message(socket, msg, **self.send_recv_kwargs)
         self.msg_sent += 1
 
-        if socket == self.out_sock and self.in_sock.type == zmq.DEALER:
+        if socket == self.out_sock and self.in_sock_type == zmq.DEALER:
             self._send_idle_to_router()
 
     def _send_control_to_router(self, command, raise_exception=False):
@@ -420,7 +422,7 @@ class ZmqStreamlet(Zmqlet):
         :param args: Extra positional arguments
         :param kwargs: Extra key-value arguments
         """
-        if not self.is_closed and self.in_sock.type == zmq.DEALER:
+        if not self.is_closed and self.in_sock_type == zmq.DEALER:
             try:
                 self._send_cancel_to_router(raise_exception=True)
             except zmq.error.ZMQError as e:
@@ -477,11 +479,11 @@ class ZmqStreamlet(Zmqlet):
             if msg:
                 self.send_message(msg)
 
-        self._in_sock_callback = lambda x: _callback(x, self.in_sock.type)
+        self._in_sock_callback = lambda x: _callback(x, self.in_sock_type)
         self.in_sock.on_recv(self._in_sock_callback)
-        self.ctrl_sock.on_recv(lambda x: _callback(x, self.ctrl_sock.type))
-        if self.out_sock is not None and self.out_sock.type == zmq.ROUTER:
-            self.out_sock.on_recv(lambda x: _callback(x, self.out_sock.type))
+        self.ctrl_sock.on_recv(lambda x: _callback(x, self.ctrl_sock_type))
+        if self.out_sock is not None and self.out_sock_type == zmq.ROUTER:
+            self.out_sock.on_recv(lambda x: _callback(x, self.out_sock_type))
         self.io_loop.start()
         self.io_loop.clear_current()
         self.io_loop.close(all_fds=True)

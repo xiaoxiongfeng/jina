@@ -85,6 +85,12 @@ reverse order. That is, if `__init__.py` depends on `A.py`, which again depends 
         default=SocketType.PUSH_BIND,
         help='The socket type for output port',
     )
+    gp.add_argument(
+        '--dynamic-routing',
+        type=bool,
+        default=False,
+        help='Tells if ZEDRuntime should respect routing graph for outgoing traffic.',
+    )
 
     gp.add_argument(
         '--memory-hwm',

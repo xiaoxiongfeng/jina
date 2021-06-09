@@ -51,14 +51,14 @@ The content source to be shipped into a Jina Hub executor. It can one of the fol
         help='If set, the published executor is visible to public',
     )
     gp.add_argument(
-        '--overwrite',
+        '--force',
         type=str,
         default='',
-        help='The access token of an existing Jina Hub executor',
+        help='To overwrite the executor identified as UUID8',
     )
     gp.add_argument(
         '--secret',
         type=str,
         default='',
-        help='The secret key of an existing Jina Hub executor',
+        help='The secret key of the existed Jina Hub executor',
     )

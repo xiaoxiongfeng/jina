@@ -118,6 +118,7 @@ class HubIO:
         if not config_yaml_path and len(yaml_glob) > 0:
             for yaml_file in yaml_glob:
                 try:
+                    # TODO: load_config is too heavy, try to work with yaml content directly
                     obj = BaseExecutor.load_config(str(yaml_file))
                     executors.append((obj.__class__.__name__, yaml_file))
                 except Exception as ex:
@@ -163,7 +164,7 @@ class HubIO:
                 'is_public': is_public,
                 'md5sum': md5_digest,
                 'jina_version': jina_version,
-                'overwrite': self.args.overwrite,
+                'force': self.args.force,
                 'secret': self.args.secret,
             }
 

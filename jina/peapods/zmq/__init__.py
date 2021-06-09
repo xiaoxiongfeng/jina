@@ -237,7 +237,7 @@ class Zmqlet:
             f'recv_size: {get_readable_size(self.bytes_recv)}'
         )
 
-    def _get_dynamic_out_socket(self, pod_address):
+    def _open_new_socket(self, pod_address):
         host_out, port_out = pod_address.rsplit(':')
         out_sock, _ = _init_socket(
             self.ctx,
@@ -252,6 +252,10 @@ class Zmqlet:
         self.logger.debug(
             f'output {self.args.host_out}:{colored(self.args.port_out, "yellow")}'
         )
+        return out_sock
+
+    def _get_dynamic_out_socket(self, pod_address):
+        out_sock = self._open_new_socket(pod_address)
         self.opened_socks.append(out_sock)
         self.out_sockets[pod_address] = out_sock
         return out_sock
@@ -423,6 +427,13 @@ class ZmqStreamlet(Zmqlet):
             self.out_sock = ZMQStream(self.out_sock, self.io_loop)
         self.ctrl_sock = ZMQStream(self.ctrl_sock, self.io_loop)
         self.in_sock.stop_on_recv()
+
+    def _get_dynamic_out_socket(self, pod_address):
+        out_sock = self._open_new_socket(pod_address)
+        out_sock = ZMQStream(out_sock, self.io_loop)
+        self.opened_socks.append(out_sock)
+        self.out_sockets[pod_address] = out_sock
+        return out_sock
 
     def close(self, flush: bool = True, *args, **kwargs):
         """Close all sockets and shutdown the ZMQ context associated to this `Zmqlet`.

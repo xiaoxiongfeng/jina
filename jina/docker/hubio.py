@@ -5,9 +5,12 @@ import glob
 from typing import Dict
 from pathlib import Path
 
+import yaml
+
 from .checker import *
 from .helper import archive_package, inspect_executors
 from .. import __version__ as jina_version, __resources_path__
+from ..executors import BaseExecutor
 from ..flow import Flow
 from ..helper import (
     colored,
@@ -107,23 +110,40 @@ class HubIO:
 
         completeness = self._check_completeness()
 
-        # inspect executors in package
-        executors = inspect_executors(completeness['*.py'])
+        executors = []
+
+        executor_py_path = None
+        config_yaml_path = completeness['config.yml']
+        yaml_glob = completeness['*.yml']
+        if not config_yaml_path and len(yaml_glob) > 0:
+            for yaml_file in yaml_glob:
+                try:
+                    obj = BaseExecutor.load_config(str(yaml_file))
+                    executors.append((obj.__class__.__name__, yaml_file))
+                except Exception as ex:
+                    pass
+        else:
+            # inspect executors from *.py files
+            executors = inspect_executors(completeness['*.py'])
 
         if len(executors) == 0:
             self.logger.critical(f'Can not find any executors defined in {pkg_path}')
             raise Exception(f'Can not find any executors defined in {pkg_path}')
 
-        # TODO: draft commit: more elegant interation later
+        # TODO: draft commits: more elegant interation later
         choice = 0
         if len(executors) > 1:
             print('Please choose which executor you want to push:')
             for i, (e, p) in enumerate(executors):
                 print(f'> [{i}]: {e} ({p})')
             choice = int(input())
-            print(f'Your choice is: {choice}: {executors[choice]}')
+            # print(f'Your choice is: {choice}: {executors[choice]}')
 
-        executor_class, executor_py = executors[choice]
+        executor_class, _ = executors[choice]
+        if str(_).endswith('.yml'):
+            config_yaml_path = _
+        else:
+            executor_py_path = _
 
         try:
             # archive the executor package
@@ -138,7 +158,8 @@ class HubIO:
             # upload the archived package
             data = {
                 'executor_class': executor_class,
-                'executor_py': executor_py,
+                'executor_py_path': executor_py_path,
+                'config_yaml_path': config_yaml_path,
                 'is_public': is_public,
                 'md5sum': md5_digest,
                 'jina_version': jina_version,
@@ -200,27 +221,33 @@ class HubIO:
         readme_path = work_path / 'README.md'
         requirements_path = work_path / 'requirements.txt'
 
+        yaml_glob = set(work_path.glob('*.yml'))
+        yaml_glob.difference_update({manifest_path, config_yaml_path})
+
         py_glob = list(work_path.glob('*.py'))
         test_glob = list(work_path.glob('tests/test_*.py'))
 
         completeness = {
-            'Dockerfile': dockerfile_path,
-            'manifest.yml': manifest_path,
-            'config.yml': config_yaml_path,
-            'README.md': readme_path,
-            'requirements.txt': requirements_path,
+            'Dockerfile': dockerfile_path if dockerfile_path.exists() else None,
+            'manifest.yml': manifest_path if manifest_path.exists() else None,
+            'config.yml': config_yaml_path if config_yaml_path.exists() else None,
+            'README.md': readme_path if readme_path.exists() else None,
+            'requirements.txt': requirements_path
+            if requirements_path.exists()
+            else None,
+            '*.yml': list(yaml_glob),
             '*.py': py_glob,
             'tests': test_glob,
         }
 
-        # self.logger.info(
-        #     f'completeness check\n'
-        #     + '\n'.join(
-        #         f'{colored("✓", "green") if v else colored("✗", "red"):>4} {k:<20} {v}'
-        #         for k, v in completeness.items()
-        #     )
-        #     + '\n'
-        # )
+        self.logger.info(
+            f'completeness check\n'
+            + '\n'.join(
+                f'{colored("✓", "green") if v else colored("✗", "red"):>4} {k:<20} {v}'
+                for k, v in completeness.items()
+            )
+            + '\n'
+        )
 
         # if not (completeness['Dockerfile'] and completeness['manifest.yml']):
         #     self.logger.critical(

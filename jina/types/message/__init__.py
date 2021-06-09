@@ -72,6 +72,10 @@ class Message:
         if self.envelope.check_version:
             self._check_version()
 
+    @classmethod
+    def from_proto(cls, msg: 'jina_pb2.MessageProto'):
+        return cls(msg.envelope, msg.request)
+
     @property
     def request(self) -> 'Request':
         """

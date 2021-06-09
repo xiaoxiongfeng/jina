@@ -86,8 +86,8 @@ reverse order. That is, if `__init__.py` depends on `A.py`, which again depends 
         help='The socket type for output port',
     )
     gp.add_argument(
-        '--dynamic-routing',
-        type=bool,
+        '--dynamic-out-routing',
+        action='store_true',
         default=False,
         help='Tells if ZEDRuntime should respect routing graph for outgoing traffic.',
     )

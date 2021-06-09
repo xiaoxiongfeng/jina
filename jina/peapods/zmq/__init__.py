@@ -174,7 +174,7 @@ class Zmqlet:
             self.logger.debug(
                 f'input {self.args.host_in}:{colored(self.args.port_in, "yellow")}'
             )
-            if not self.args.dynamic_routing:
+            if not self.args.dynamic_out_routing:
                 out_sock, out_addr = _init_socket(
                     ctx,
                     self.args.host_out,
@@ -243,7 +243,7 @@ class Zmqlet:
             self.ctx,
             host_out,
             port_out,
-            zmq.DEALER,
+            SocketType.DEALER_CONNECT,
             self.identity,
             ssh_server=self.args.ssh_server,
             ssh_keyfile=self.args.ssh_keyfile,
@@ -271,9 +271,9 @@ class Zmqlet:
     def send_message_dynamic(self, msg: 'Message'):
         for routing_graph, out_sock in self.get_dynamic_next_routes(msg):
             new_message_proto = msg.proto
-            new_message_proto.envelope.routes = routing_graph
+            new_message_proto.envelope.targets.CopyFrom(routing_graph.proto)
 
-            self._send_message_via(out_sock, Message(new_message_proto))
+            self._send_message_via(out_sock, Message.from_proto(new_message_proto))
 
     def send_message(self, msg: 'Message'):
         """Send a message via the output socket
@@ -281,9 +281,8 @@ class Zmqlet:
         :param msg: the protobuf message to send
         """
         # choose output sock
-
         if msg.is_data_request:
-            if self.args.dynamic_routing:
+            if self.args.dynamic_out_routing:
                 self.send_message_dynamic(msg)
                 return
             out_sock = self.out_sock
@@ -355,10 +354,23 @@ class AsyncZmqlet(Zmqlet):
         :param kwargs: keyword arguments
         """
         # await asyncio.sleep(sleep)  # preventing over-speed sending
-        try:
-            num_bytes = await send_message_async(
-                self.out_sock, msg, **self.send_recv_kwargs
+        if self.args.dynamic_out_routing:
+            await self.send_message_dynamic(msg)
+            return
+        else:
+            self._send_message_via(self.out_sock, msg)
+
+    async def send_message_dynamic(self, msg: 'Message'):
+        for routing_graph, out_sock in self.get_dynamic_next_routes(msg):
+            new_message_proto = msg.proto
+            new_message_proto.envelope.targets.CopyFrom(routing_graph.proto)
+            await self._send_message_via(
+                out_sock, Message.from_proto(new_message_proto)
             )
+
+    async def _send_message_via(self, socket, msg):
+        try:
+            num_bytes = await send_message_async(socket, msg, **self.send_recv_kwargs)
             self.bytes_sent += num_bytes
             self.msg_sent += 1
         except (asyncio.CancelledError, TypeError) as ex:

@@ -1,5 +1,4 @@
 import logging
-from google.protobuf import json_format
 
 from jina import Flow
 from jina.parsers import set_pea_parser
@@ -53,66 +52,6 @@ def test_simple_zmqlet():
         d = req.data.docs.add()
         d.tags['id'] = 2
         msg = Message(None, req, 'tmp', '')
-        z.send_message(msg)
-
-
-def test_dynamic_routing_zmqlet():
-    args = set_pea_parser().parse_args(
-        [
-            '--host-in',
-            '0.0.0.0',
-            '--host-out',
-            '0.0.0.0',
-            '--socket-in',
-            'PULL_CONNECT',
-            '--socket-out',
-            'DEALER_CONNECT',
-            '--dynamic-routing',
-            'True',
-            '--timeout-ctrl',
-            '-1',
-        ]
-    )
-
-    args2 = set_pea_parser().parse_args(
-        [
-            '--host-in',
-            '0.0.0.0',
-            '--host-out',
-            '0.0.0.0',
-            '--port-in',
-            str(args.port_out),
-            '--port-out',
-            str(args.port_in),
-            '--socket-in',
-            'ROUTER_BIND',
-            '--socket-out',
-            'PUSH_BIND',
-            '--timeout-ctrl',
-            '-1',
-        ]
-    )
-
-    logger = logging.getLogger('zmq-test')
-    with BasePea(args2), Zmqlet(args, logger) as z:
-        req = jina_pb2.RequestProto()
-        req.request_id = random_identity()
-        d = req.data.docs.add()
-        d.tags['id'] = 2
-        msg = Message(None, req, 'tmp', '')
-        routing_pb = jina_pb2.RoutingGraphProto()
-        routing_graph = {
-            'active_pod_index': 0,
-            'pods': [
-                {
-                    'pod_address': f'0.0.0.0:{args2.port_in}',
-                    'expected_parts': 1,
-                    'out_edges': [],
-                },
-            ],
-        }
-        json_format.ParseDict(routing_graph, routing_pb)
-        msg.envelope.targets.CopyFrom(routing_pb)
         z.send_message(msg)
 
 

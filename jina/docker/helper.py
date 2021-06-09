@@ -60,7 +60,7 @@ def archive_package(package_folder: 'Path') -> 'io.BytesIO':
     import os
     import zipfile
 
-    import pathspec
+    # import pathspec
 
     # TODO: get ignored file pattern from `resources/ignored_files`
     ignored_file_specs = ['**/*.pyc']
@@ -73,11 +73,11 @@ def archive_package(package_folder: 'Path') -> 'io.BytesIO':
         '.git',
         '.vscode',
     ]
-    ignored_specs = ignored_file_specs + ignored_dir_specs
+    # ignored_specs = ignored_file_specs + ignored_dir_specs
 
-    ignored_spec = pathspec.PathSpec.from_lines(
-        pathspec.patterns.GitWildMatchPattern, ignored_specs
-    )
+    # ignored_spec = pathspec.PathSpec.from_lines(
+    #     pathspec.patterns.GitWildMatchPattern, ignored_specs
+    # )
 
     zip_stream = io.BytesIO()
     try:
@@ -88,8 +88,8 @@ def archive_package(package_folder: 'Path') -> 'io.BytesIO':
     def _zip(base_path, path, archive):
         paths = os.listdir(path)
         for p in paths:
-            if ignored_spec.match_file(p):
-                continue
+            # if ignored_spec.match_file(p):
+            #     continue
             p = os.path.join(path, p)
             if os.path.isdir(p):
                 _zip(base_path, p, archive)

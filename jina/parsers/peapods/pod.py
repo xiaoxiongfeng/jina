@@ -64,8 +64,8 @@ The polling strategy of the Pod (when `parallel>1`)
         '--external',
         action='store_true',
         default=False,
-        help='The Pod will be considered an external Pod that has been started independently from the Flow. This Pod '
-        'will not be context managed by the Flow, and is considered with `--freeze-network-settings`',
+        help='The Pod will be considered an external Pod that has been started independently from the Flow.'
+        'This Pod will not be context managed by the Flow.',
     )
 
     # hidden CLI used for internal only

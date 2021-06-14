@@ -20,6 +20,7 @@ from ...types.message import Message
 from ...types.message.common import ControlMessage
 from ...types.request import Request
 from ...types.routing.graph import RoutingGraph
+from ..networking import get_connect_host
 
 
 class Zmqlet:
@@ -239,8 +240,7 @@ class Zmqlet:
             f'recv_size: {get_readable_size(self.bytes_recv)}'
         )
 
-    def _open_new_socket(self, pod_address):
-        host_out, port_out = pod_address.rsplit(':')
+    def _open_new_socket(self, host_out, port_out):
         out_sock, _ = _init_socket(
             self.ctx,
             host_out,
@@ -257,7 +257,10 @@ class Zmqlet:
         return out_sock
 
     def _get_dynamic_out_socket(self, pod_address):
-        out_sock = self._open_new_socket(pod_address)
+        host_out, port_out = pod_address.split(':')
+        host = get_connect_host(host_out, False, self.args)
+
+        out_sock = self._open_new_socket(host, port_out)
         self.opened_socks.append(out_sock)
         self.out_sockets[pod_address] = out_sock
         return out_sock
@@ -431,7 +434,8 @@ class ZmqStreamlet(Zmqlet):
         self.in_sock.stop_on_recv()
 
     def _get_dynamic_out_socket(self, pod_address):
-        out_sock = self._open_new_socket(pod_address)
+        host_out, port_out = pod_address.split(':')
+        out_sock = self._open_new_socket(host_out, port_out)
         out_sock = ZMQStream(out_sock, self.io_loop)
         self.opened_socks.append(out_sock)
         self.out_sockets[pod_address] = out_sock

@@ -12,6 +12,7 @@ from ... import __default_host__, __default_executor__
 from ... import helper
 from ...enums import SchedulerType, PodRoleType, SocketType, PeaRoleType, PollingType
 from ...helper import get_public_ip, get_internal_ip, random_identity
+from ..networking import get_connect_host
 
 
 class ExitFIFO(ExitStack):
@@ -137,42 +138,6 @@ class BasePod(ExitFIFO):
         """
         return self.args.name
 
-    @property
-    def host_in(self) -> str:
-        """Get the host_in of this pod
-
-
-        .. # noqa: DAR201
-        """
-        return self.head_args.host_in
-
-    @property
-    def host_out(self) -> str:
-        """Get the host_out of this pod
-
-
-        .. # noqa: DAR201
-        """
-        return self.tail_args.host_out
-
-    @property
-    def address_in(self) -> str:
-        """Get the full incoming address of this pod
-
-
-        .. # noqa: DAR201
-        """
-        return f'{self.head_args.host_in}:{self.head_args.port_in} ({self.head_args.socket_in!s})'
-
-    @property
-    def address_out(self) -> str:
-        """Get the full outgoing address of this pod
-
-
-        .. # noqa: DAR201
-        """
-        return f'{self.tail_args.host_out}:{self.tail_args.port_out} ({self.tail_args.socket_out!s})'
-
     def __enter__(self) -> 'BasePod':
         return self.start()
 
@@ -251,56 +216,6 @@ class BasePod(ExitFIFO):
 
         return _tail_args
 
-    @staticmethod
-    def _fill_in_host(bind_args: Namespace, connect_args: Namespace) -> str:
-        """
-        Compute the host address for ``connect_args``
-
-        :param bind_args: configuration for the host ip binding
-        :param connect_args: configuration for the host ip connection
-        :return: host ip
-        """
-        from sys import platform
-
-        # by default __default_host__ is 0.0.0.0
-
-        # is BIND at local
-        bind_local = bind_args.host == __default_host__
-
-        # is CONNECT at local
-        conn_local = connect_args.host == __default_host__
-
-        # is CONNECT inside docker?
-        conn_docker = getattr(
-            connect_args, 'uses', None
-        ) is not None and connect_args.uses.startswith('docker://')
-
-        # is BIND & CONNECT all on the same remote?
-        bind_conn_same_remote = (
-            not bind_local and not conn_local and (bind_args.host == connect_args.host)
-        )
-
-        if platform in ('linux', 'linux2'):
-            local_host = __default_host__
-        else:
-            local_host = 'host.docker.internal'
-
-        # pod1 in local, pod2 in local (conn_docker if pod2 in docker)
-        if bind_local and conn_local:
-            return local_host if conn_docker else __default_host__
-
-        # pod1 and pod2 are remote but they are in the same host (pod2 is local w.r.t pod1)
-        if bind_conn_same_remote:
-            return local_host if conn_docker else __default_host__
-
-        # From here: Missing consideration of docker
-        if bind_local and not conn_local:
-            # in this case we are telling CONN (at remote) our local ip address
-            return get_public_ip() if bind_args.expose_public else get_internal_ip()
-        else:
-            # in this case we (at local) need to know about remote the BIND address
-            return bind_args.host
-
     @property
     @abstractmethod
     def head_args(self) -> Namespace:
@@ -358,7 +273,7 @@ class Pod(BasePod):
 
     @property
     def full_address(self):
-        return f'{self.head_args.host_in}:{self.head_args.port_in}'
+        return f'{self.head_args.host}:{self.head_args.port_in}'
 
     @property
     def is_singleton(self) -> bool:
@@ -639,12 +554,16 @@ class Pod(BasePod):
             else:
                 _args.socket_in = SocketType.SUB_CONNECT
             if head_args:
-                _args.host_in = BasePod._fill_in_host(
-                    bind_args=head_args, connect_args=_args
+                _args.host_in = get_connect_host(
+                    bind_host=head_args.host,
+                    bind_expose_public=head_args.expose_public,
+                    connect_args=_args,
                 )
             if tail_args:
-                _args.host_out = BasePod._fill_in_host(
-                    bind_args=tail_args, connect_args=_args
+                _args.host_out = get_connect_host(
+                    bind_host=tail_args.host,
+                    bind_expose_public=tail_args.expose_public,
+                    connect_args=_args,
                 )
 
             # pea workspace if not set then derive from workspace

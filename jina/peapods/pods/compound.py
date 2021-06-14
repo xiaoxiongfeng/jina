@@ -9,6 +9,7 @@ from .. import Pod
 from ... import helper
 from ...enums import PollingType, SocketType
 from ...helper import random_identity
+from ..networking import get_connect_host
 
 
 class CompoundPod(BasePod):
@@ -213,11 +214,15 @@ class CompoundPod(BasePod):
             _args.socket_out = SocketType.PUSH_CONNECT
             _args.socket_in = SocketType.DEALER_CONNECT
 
-            _args.host_in = BasePod._fill_in_host(
-                bind_args=head_args, connect_args=_args
+            _args.host_in = get_connect_host(
+                bind_host=head_args.host,
+                bind_expose_public=head_args.expose_public,
+                connect_args=_args,
             )
-            _args.host_out = BasePod._fill_in_host(
-                bind_args=tail_args, connect_args=_args
+            _args.host_out = get_connect_host(
+                bind_host=tail_args.host,
+                bind_expose_public=tail_args.expose_public,
+                connect_args=_args,
             )
             result.append(_args)
         return result

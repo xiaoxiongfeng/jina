@@ -8,7 +8,6 @@ from google.protobuf import json_format
 from jina.parsers import set_pea_parser
 from jina.peapods.zmq import Zmqlet, AsyncZmqlet, ZmqStreamlet
 from jina.proto import jina_pb2
-from jina.peapods.peas import BasePea
 from jina.types.message import Message
 from jina.helper import random_identity
 
@@ -127,7 +126,7 @@ def test_double_dynamic_routing_zmqlet():
         for i in range(trips):
             for i in range(number_messages):
                 z1.send_message(msg)
-
+            time.sleep(1)
             for i in range(number_messages):
                 z2.recv_message(callback)
                 z3.recv_message(callback)

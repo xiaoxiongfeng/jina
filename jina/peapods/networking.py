@@ -10,7 +10,8 @@ def get_connect_host(
     """
     Compute the host address for ``connect_args``
 
-    :param bind_args: configuration for the host ip binding
+    :param bind_host: the ip for binding
+    :param bind_expose_public: True, if bind socket should be exposed publicly
     :param connect_args: configuration for the host ip connection
     :return: host ip
     """
@@ -50,11 +51,7 @@ def get_connect_host(
     # From here: Missing consideration of docker
     if bind_local and not conn_local:
         # in this case we are telling CONN (at remote) our local ip address
-        return get_ip_address(bind_expose_public)
+        return get_public_ip() if bind_expose_public else get_internal_ip()
     else:
         # in this case we (at local) need to know about remote the BIND address
         return bind_host
-
-
-def get_ip_address(expose_public):
-    return get_public_ip() if expose_public else get_internal_ip()

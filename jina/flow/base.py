@@ -3,6 +3,7 @@ import base64
 import copy
 import os
 import re
+import subprocess
 import threading
 import uuid
 import warnings
@@ -740,6 +741,9 @@ class Flow(PostMixin, JAMLCompatible, ExitStack, metaclass=FlowType):
 
         op_flow._init_dynamic_routing()
 
+        for pod in op_flow._pod_nodes.values():
+            pod.args.host = self.parse_host(pod.args.host)
+
         hanging_pods = _hanging_pods(op_flow)
         if hanging_pods:
             op_flow.logger.warning(
@@ -748,6 +752,19 @@ class Flow(PostMixin, JAMLCompatible, ExitStack, metaclass=FlowType):
             )
         op_flow._build_level = FlowBuildLevel.GRAPH
         return op_flow
+
+    def parse_host(self, host):
+
+        try:
+            result = subprocess.run(['getent', 'hosts', host], capture_output=True)
+
+            ip_address = result.stdout.decode().split(' ')[0]
+            if ip_address == get_internal_ip():
+                return __default_host__
+            else:
+                return host
+        except:
+            return host
 
     def __call__(self, *args, **kwargs):
         """Builds the Flow

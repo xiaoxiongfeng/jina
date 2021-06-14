@@ -165,6 +165,7 @@ class Message:
         :param compress: used compression algorithm
         :param compress_min_bytes: used for configuring compression
         :param compress_min_ratio: used for configuring compression
+        :param routing_graph: routing graph filled by gateway
         :return: the resulted protobuf message
         """
         envelope = jina_pb2.EnvelopeProto()

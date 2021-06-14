@@ -138,6 +138,10 @@ class BasePod(ExitFIFO):
         """
         return self.args.name
 
+    @property
+    def full_address(self):
+        return f'{self.head_args.host}:{self.head_args.port_in}'
+
     def __enter__(self) -> 'BasePod':
         return self.start()
 
@@ -270,10 +274,6 @@ class Pod(BasePod):
 
     def add_routing_graph(self, routing_graph):
         self.args.routing_graph = routing_graph
-
-    @property
-    def full_address(self):
-        return f'{self.head_args.host}:{self.head_args.port_in}'
 
     @property
     def is_singleton(self) -> bool:

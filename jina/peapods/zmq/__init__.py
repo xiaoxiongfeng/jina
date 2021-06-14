@@ -277,7 +277,7 @@ class Zmqlet:
             next_routes.append((target, out_socket))
         return next_routes
 
-    def send_message_dynamic(self, msg: 'Message'):
+    def _send_message_dynamic(self, msg: 'Message'):
         for routing_graph, out_sock in self.get_dynamic_next_routes(msg):
             new_message_proto = msg.proto
             new_message_proto.envelope.routing_graph.CopyFrom(routing_graph.proto)
@@ -292,7 +292,7 @@ class Zmqlet:
         # choose output sock
         if msg.is_data_request:
             if self.args.dynamic_out_routing:
-                self.send_message_dynamic(msg)
+                self._send_message_dynamic(msg)
                 return
             out_sock = self.out_sock
         else:
@@ -364,12 +364,12 @@ class AsyncZmqlet(Zmqlet):
         """
         # await asyncio.sleep(sleep)  # preventing over-speed sending
         if self.args.dynamic_out_routing:
-            await self.send_message_dynamic(msg)
+            await self._send_message_dynamic(msg)
             return
         else:
             self._send_message_via(self.out_sock, msg)
 
-    async def send_message_dynamic(self, msg: 'Message'):
+    async def _send_message_dynamic(self, msg: 'Message'):
         for routing_graph, out_sock in self.get_dynamic_next_routes(msg):
             new_message_proto = msg.proto
             new_message_proto.envelope.routing_graph.CopyFrom(routing_graph.proto)

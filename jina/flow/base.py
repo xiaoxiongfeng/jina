@@ -518,7 +518,10 @@ class Flow(PostMixin, JAMLCompatible, ExitStack, metaclass=FlowType):
         # pod workspace if not set then derive from flow workspace
         args.workspace = os.path.abspath(args.workspace or self.workspace)
 
-        op_flow._pod_nodes[pod_name] = PodFactory.build_pod(args, needs)
+        op_flow._pod_nodes[pod_name] = PodFactory.build_pod(
+            args, needs, setup_dynamic_routing=True
+        )
+
         op_flow.last_pod = pod_name
 
         return op_flow

@@ -51,9 +51,7 @@ def external_pod_args(num_replicas, num_parallel):
 
 @pytest.fixture
 def external_pod(external_pod_args):
-    return PodFactory.build_pod(
-        external_pod_args,
-    )
+    return PodFactory.build_pod(external_pod_args, setup_dynamic_routing=True)
 
 
 class MyExternalExecutor(Executor):
@@ -146,7 +144,7 @@ def external_pod_parallel_1_args(num_replicas, num_parallel):
 @pytest.fixture
 def external_pod_parallel_1(external_pod_parallel_1_args):
     return PodFactory.build_pod(
-        external_pod_parallel_1_args,
+        external_pod_parallel_1_args, setup_dynamic_routing=True
     )
 
 
@@ -172,7 +170,7 @@ def external_pod_parallel_2_args(num_replicas, num_parallel):
 @pytest.fixture
 def external_pod_parallel_2(external_pod_parallel_2_args):
     return PodFactory.build_pod(
-        external_pod_parallel_2_args,
+        external_pod_parallel_2_args, setup_dynamic_routing=True
     )
 
 
@@ -246,7 +244,7 @@ def external_pod_pre_parallel_args(num_replicas, num_parallel):
 @pytest.fixture
 def external_pod_pre_parallel(external_pod_pre_parallel_args):
     return PodFactory.build_pod(
-        external_pod_pre_parallel_args,
+        external_pod_pre_parallel_args, setup_dynamic_routing=True
     )
 
 
@@ -313,9 +311,7 @@ def external_pod_join_args(num_replicas, num_parallel):
 
 @pytest.fixture
 def external_pod_join(external_pod_join_args):
-    return PodFactory.build_pod(
-        external_pod_join_args,
-    )
+    return PodFactory.build_pod(external_pod_join_args, setup_dynamic_routing=True)
 
 
 @pytest.mark.parametrize('num_replicas', [1, 2], indirect=True)

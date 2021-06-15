@@ -1,5 +1,4 @@
 from jina import Document, Executor, Flow, requests
-from jina.logging.profile import TimeContext
 
 
 class MyExecutor(Executor):
@@ -32,11 +31,3 @@ def test_expected_messages_routing():
     with f:
         results = f.post(on='/index', inputs=[Document(text='1')], return_results=True)
         assert results[0].docs[0].text == '2'
-
-
-def test_routing_speed():
-    f = Flow().add(replicas=2).add().add()
-    with f:
-        with TimeContext('blabla'):
-            for i in range(100):
-                f.post(on='/index', inputs=[Document(text='1')], return_results=True)

@@ -88,6 +88,42 @@ def test_flow_with_external_pod(
     validate_callback(mock, validate_response)
 
 
+@pytest.mark.parametrize('num_replicas', [2], indirect=True)
+@pytest.mark.parametrize('num_parallel', [2], indirect=True)
+def test_two_flow_with_shared_external_pod(
+    external_pod, external_pod_args, input_docs, mocker, num_replicas, num_parallel
+):
+    with external_pod:
+        external_args = vars(external_pod_args)
+        del external_args['name']
+        del external_args['external']
+        del external_args['pod_role']
+        flow = Flow().add(
+            **external_args,
+            name='external_fake',
+            external=True,
+        )
+
+        with flow:
+            results = flow.index(inputs=input_docs, return_results=True)
+            validate_response(results[0])
+
+        flow = (
+            Flow()
+            .add(name='foo')
+            .add(
+                **external_args,
+                name='external_fake',
+                external=True,
+                needs=['gateway', 'foo'],
+            )
+        )
+
+        with flow:
+            flow.index(inputs=input_docs, return_results=True)
+            validate_response(results[0])
+
+
 @pytest.fixture(scope='function')
 def external_pod_parallel_1_args(num_replicas, num_parallel):
     args = [

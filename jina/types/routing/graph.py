@@ -23,6 +23,10 @@ class RoutingGraph:
         return self.pods[int(self.active_pod_index)]
 
     @property
+    def active_expected_parts(self):
+        return self.active_pod.expected_parts
+
+    @property
     def pods(self):
         return self.proto.pods
 

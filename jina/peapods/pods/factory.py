@@ -4,6 +4,7 @@ from typing import Optional, Set
 from .compound import CompoundPod
 from .. import BasePod
 from .. import Pod
+from ...enums import SocketType
 
 
 class PodFactory:
@@ -21,6 +22,10 @@ class PodFactory:
         :return: the created BasePod
         """
         if getattr(args, 'replicas', 1) > 1:
-            return CompoundPod(args, needs=needs)
+            pod = CompoundPod(args, needs=needs)
         else:
-            return Pod(args, needs=needs)
+            pod = Pod(args, needs=needs)
+        pod.head_args.socket_in = SocketType.ROUTER_BIND
+        pod.tail_args.dynamic_out_routing = True
+        pod.tail_args.socket_out = SocketType.DEALER_CONNECT
+        return pod

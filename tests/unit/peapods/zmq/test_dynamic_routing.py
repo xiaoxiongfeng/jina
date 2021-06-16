@@ -185,19 +185,17 @@ def test_double_dynamic_routing_async_zmqlet():
 
         loop = asyncio.get_event_loop()
 
-        number_messages = 100
-        for i in range(number_messages):
-            loop.run_until_complete(send_msg(z1, msg))
+        loop.run_until_complete(send_msg(z1, msg))
 
-            loop.run_until_complete(z2.recv_message(callback))
-            loop.run_until_complete(z3.recv_message(callback))
+        loop.run_until_complete(z2.recv_message(callback))
+        loop.run_until_complete(z3.recv_message(callback))
 
-        assert z1.msg_sent == 2 * number_messages
+        assert z1.msg_sent == 2
         assert z1.msg_recv == 0
         assert z2.msg_sent == 0
-        assert z2.msg_recv == number_messages
+        assert z2.msg_recv == 1
         assert z3.msg_sent == 0
-        assert z3.msg_recv == number_messages
+        assert z3.msg_recv == 1
 
 
 def test_double_dynamic_routing_zmqstreamlet():

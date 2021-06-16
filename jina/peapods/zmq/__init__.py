@@ -81,7 +81,7 @@ class Zmqlet:
         self.poller = zmq.Poller()
         self.poller.register(self.in_sock, zmq.POLLIN)
         self.poller.register(self.ctrl_sock, zmq.POLLIN)
-        if self.out_sock is not None and self.out_sock_type == zmq.ROUTER:
+        if self.out_sock_type == zmq.ROUTER:
             self.poller.register(self.out_sock, zmq.POLLIN)
 
     def pause_pollin(self):
@@ -125,7 +125,7 @@ class Zmqlet:
         # the priority ctrl_sock > in_sock
         if socks.get(self.ctrl_sock) == zmq.POLLIN:
             return self.ctrl_sock
-        elif self.out_sock is not None and socks.get(self.out_sock) == zmq.POLLIN:
+        elif socks.get(self.out_sock, None) == zmq.POLLIN:
             return self.out_sock  # for dealer return idle status to router
         elif socks.get(self.in_sock) == zmq.POLLIN:
             return self.in_sock
@@ -240,7 +240,7 @@ class Zmqlet:
             f'recv_size: {get_readable_size(self.bytes_recv)}'
         )
 
-    def _open_new_socket(self, host_out, port_out):
+    def _init_dynamic_out_socket(self, host_out, port_out):
         out_sock, _ = _init_socket(
             self.ctx,
             host_out,
@@ -256,13 +256,15 @@ class Zmqlet:
         )
         return out_sock
 
-    def _get_dynamic_out_socket(self, pod_address):
-        host_out, port_out = pod_address.split(':')
-        host = get_connect_host(host_out, False, self.args)
+    def _get_dynamic_out_socket(self, target_pod, as_streaming=False):
+        host = get_connect_host(target_pod.host, False, self.args)
+        out_sock = self._init_dynamic_out_socket(host, target_pod.port)
 
-        out_sock = self._open_new_socket(host, port_out)
+        if as_streaming:
+            out_sock = ZMQStream(out_sock, self.io_loop)
+
         self.opened_socks.append(out_sock)
-        self.out_sockets[pod_address] = out_sock
+        self.out_sockets[target_pod.full_address] = out_sock
         return out_sock
 
     def get_dynamic_next_routes(self, message):
@@ -270,10 +272,10 @@ class Zmqlet:
         next_targets = routing_graph.get_next_targets()
         next_routes = []
         for target in next_targets:
-            pod_address = target.active_pod.pod_address
+            pod_address = target.active_pod.full_address
             out_socket = self.out_sockets.get(pod_address, None)
             if out_socket is None:
-                out_socket = self._get_dynamic_out_socket(pod_address)
+                out_socket = self._get_dynamic_out_socket(target.active_pod)
             next_routes.append((target, out_socket))
         return next_routes
 
@@ -365,7 +367,6 @@ class AsyncZmqlet(Zmqlet):
         # await asyncio.sleep(sleep)  # preventing over-speed sending
         if self.args.dynamic_out_routing:
             await self._send_message_dynamic(msg)
-            return
         else:
             self._send_message_via(self.out_sock, msg)
 
@@ -433,13 +434,8 @@ class ZmqStreamlet(Zmqlet):
         self.ctrl_sock = ZMQStream(self.ctrl_sock, self.io_loop)
         self.in_sock.stop_on_recv()
 
-    def _get_dynamic_out_socket(self, pod_address):
-        host_out, port_out = pod_address.split(':')
-        out_sock = self._open_new_socket(host_out, port_out)
-        out_sock = ZMQStream(out_sock, self.io_loop)
-        self.opened_socks.append(out_sock)
-        self.out_sockets[pod_address] = out_sock
-        return out_sock
+    def _get_dynamic_out_socket(self, target_pod):
+        return super()._get_dynamic_out_socket(target_pod, as_streaming=True)
 
     def close(self, flush: bool = True, *args, **kwargs):
         """Close all sockets and shutdown the ZMQ context associated to this `Zmqlet`.
@@ -511,7 +507,7 @@ class ZmqStreamlet(Zmqlet):
         self._in_sock_callback = lambda x: _callback(x, self.in_sock_type)
         self.in_sock.on_recv(self._in_sock_callback)
         self.ctrl_sock.on_recv(lambda x: _callback(x, self.ctrl_sock_type))
-        if self.out_sock is not None and self.out_sock_type == zmq.ROUTER:
+        if self.out_sock_type == zmq.ROUTER:
             self.out_sock.on_recv(lambda x: _callback(x, self.out_sock_type))
         self.io_loop.start()
         self.io_loop.clear_current()

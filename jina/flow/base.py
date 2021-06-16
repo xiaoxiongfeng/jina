@@ -18,7 +18,7 @@ from .. import __default_host__
 from ..clients import Client
 from ..clients.mixin import AsyncPostMixin, PostMixin
 from ..enums import FlowBuildLevel, PodRoleType, FlowInspectType, SocketType
-from ..excepts import FlowTopologyError, FlowMissingPodError
+from ..excepts import FlowTopologyError, FlowMissingPodError, RoutingGraphCyclicError
 from ..helper import (
     colored,
     get_public_ip,
@@ -35,8 +35,7 @@ from ..types.routing.graph import RoutingGraph
 
 __all__ = ['BaseFlow']
 
-from ..peapods import Pod
-from ..peapods.pods.compound import CompoundPod
+from ..peapods import CompoundPod, GatewayPod
 from ..peapods.pods.factory import PodFactory
 from ..proto import jina_pb2
 
@@ -241,7 +240,7 @@ class Flow(PostMixin, JAMLCompatible, ExitStack, metaclass=FlowType):
         kwargs.update(self._common_kwargs)
         args = ArgNamespace.kwargs2namespace(kwargs, set_gateway_parser())
 
-        self._pod_nodes[GATEWAY_NAME] = Pod(args, needs)
+        self._pod_nodes[GATEWAY_NAME] = GatewayPod(args, needs)
 
     def needs(
         self, needs: Union[Tuple[str], List[str]], name: str = 'joiner', *args, **kwargs
@@ -622,7 +621,8 @@ class Flow(PostMixin, JAMLCompatible, ExitStack, metaclass=FlowType):
         return (
             f'{prefix}-{GATEWAY_NAME}',
             {
-                'pod_address': gateway_pod.full_address,
+                'host': gateway_pod.host_in,
+                'port': gateway_pod.port_in,
                 'expected_parts': 0,
             },
         )
@@ -637,7 +637,8 @@ class Flow(PostMixin, JAMLCompatible, ExitStack, metaclass=FlowType):
             (
                 pod_id,
                 {
-                    'pod_address': pod.full_address,
+                    'host': pod.host_in,
+                    'port': pod.port_in,
                     'expected_parts': 0,
                 },
             )
@@ -674,10 +675,11 @@ class Flow(PostMixin, JAMLCompatible, ExitStack, metaclass=FlowType):
                 end_pod[1]['expected_parts'] += 1
                 start_pos = pods_id_to_position[start][0]
                 end_pos = end_pod[0]
-                edges[str(start_pos)].append(str(end_pos))
+                edges[start_pos].append(end_pos)
 
         targets = [pod[1] for pod in target_pods]
-        graph = {'active_pod_index': '0', 'pods': targets, 'edges': edges}
+        parsed_edges = {key: {'targets': value} for key, value in edges.items()}
+        graph = {'active_pod_index': 0, 'pods': targets, 'edges': parsed_edges}
 
         routing_pb = jina_pb2.RoutingGraphProto()
         json_format.ParseDict(graph, routing_pb)
@@ -685,7 +687,11 @@ class Flow(PostMixin, JAMLCompatible, ExitStack, metaclass=FlowType):
 
     def _init_dynamic_routing(self):
         routing_graph = self._get_routing_graph()
-        self._pod_nodes[GATEWAY_NAME].add_routing_graph(routing_graph)
+        if not routing_graph.is_acyclic():
+            raise RoutingGraphCyclicError(
+                "The routing graph has a cycle. This would result in an infinite loop. Fix your Flow setup."
+            )
+        self._pod_nodes[GATEWAY_NAME].set_routing_graph(routing_graph)
 
     def build(self, copy_flow: bool = False) -> 'Flow':
         """

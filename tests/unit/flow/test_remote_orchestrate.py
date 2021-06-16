@@ -6,7 +6,7 @@ from jina.helper import get_internal_ip, get_public_ip
 
 
 def ip_from(flow, pod_number):
-    return flow['gateway'].args.routing_graph.pods[pod_number].pod_address.split(':')[0]
+    return flow['gateway'].args.routing_graph.pods[pod_number].host
 
 
 @pytest.mark.parametrize(
@@ -75,6 +75,11 @@ def test_local_pod_remote_pod_remote_pod_local_gateway(local_ip, on_public):
 
     f = Flow(expose_public=on_public).add().add(host=remote1).add(host=remote2)
     f.build()
+    assert ip_from(f, 0) == __default_host__
+    assert ip_from(f, 1) == __default_host__
+    assert ip_from(f, 2) == remote1
+    assert ip_from(f, 3) == remote2
+    assert ip_from(f, -1) == ip_from(f, 0)
 
 
 def test_gateway_remote():

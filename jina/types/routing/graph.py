@@ -1,18 +1,37 @@
 from ...proto import jina_pb2
 
 
+class TargetPod:
+    def __init__(self, target: 'jina_pb2.TargetPodProto'):
+        self.proto = target
+
+    @property
+    def port(self):
+        return self.proto.port
+
+    @property
+    def host(self):
+        return self.proto.host
+
+    @property
+    def full_address(self):
+        return f'{self.host}:{self.port}'
+
+    @property
+    def expected_parts(self):
+        return self.proto.expected_parts
+
+
 class RoutingGraph:
-    def __init__(
-        self,
-        graph: 'jina_pb2.RoutingGraphProto' = None,
-        *args,
-        **kwargs,
-    ):
+    def __init__(self, graph: 'jina_pb2.RoutingGraphProto' = None):
         self.proto = graph
 
     @property
     def edges(self):
         return self.proto.edges
+
+    def get_out_edges(self, pod_id):
+        return self.proto.edges[pod_id].targets
 
     @property
     def active_pod_index(self):
@@ -20,22 +39,15 @@ class RoutingGraph:
 
     @property
     def active_pod(self):
-        return self.pods[int(self.active_pod_index)]
-
-    @property
-    def active_expected_parts(self):
-        return self.active_pod.expected_parts
+        return TargetPod(self.pods[self.active_pod_index])
 
     @property
     def pods(self):
         return self.proto.pods
 
-    def get_pod(self, pod_index: str):
-        return self.pods[int[pod_index]]
-
     def get_next_targets(self):
         targets = []
-        for next_pod_index in self.edges[self.active_pod_index]:
+        for next_pod_index in self.get_out_edges(self.active_pod_index):
             new_graph = jina_pb2.RoutingGraphProto()
             new_graph.CopyFrom(self.proto)
             new_graph.active_pod_index = next_pod_index
@@ -49,9 +61,9 @@ class RoutingGraph:
         }
 
         for first in topological_sorting:
-            for second in self.edges[str(first)]:
+            for second in self.get_out_edges(first):
 
-                if position_lookup[first] > position_lookup[int(second)]:
+                if position_lookup[first] > position_lookup[second]:
 
                     return False
         return True
@@ -79,8 +91,8 @@ class RoutingGraph:
     def _topological_sort_pod(self, pod_index, visited, stack):
         visited[pod_index] = True
 
-        for i in self.edges[str(pod_index)]:
-            if not visited[int(i)]:
-                self._topological_sort_pod(int(i), visited, stack)
+        for i in self.get_out_edges(pod_index):
+            if not visited[i]:
+                self._topological_sort_pod(i, visited, stack)
 
         stack.append(pod_index)

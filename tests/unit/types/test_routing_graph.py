@@ -13,11 +13,11 @@ def get_next_routes(routing):
 
 def test_single_routing():
     graph = {
-        'active_pod_index': '0',
+        'active_pod_index': 0,
         'pods': [
-            {'pod_address': '0.0.0.0:1230', 'expected_parts': 1},
+            {'host': '0.0.0.0', 'port': 1230, 'expected_parts': 1},
         ],
-        'edges': {'0': []},
+        'edges': {0: {'targets': []}},
     }
     next_routes = get_next_routes(graph)
 
@@ -26,74 +26,85 @@ def test_single_routing():
 
 def test_simple_routing():
     graph = {
-        'active_pod_index': '0',
+        'active_pod_index': 0,
         'pods': [
-            {'pod_address': '0.0.0.0:1230', 'expected_parts': 1},
-            {'pod_address': '0.0.0.0:1231', 'expected_parts': 1},
+            {'host': '0.0.0.0', 'port': 1230, 'expected_parts': 1},
+            {'host': '0.0.0.0', 'port': 1231, 'expected_parts': 1},
         ],
-        'edges': {'0': ['1'], '1': []},
+        'edges': {0: {'targets': [1]}, 1: {'targets': []}},
     }
     next_routes = get_next_routes(graph)
 
     assert len(next_routes) == 1
-    assert next_routes[0].active_pod_index == '1'
+    assert next_routes[0].active_pod_index == 1
 
 
 def test_double_routing():
     graph = {
-        'active_pod_index': '0',
+        'active_pod_index': 0,
         'pods': [
-            {'pod_address': '0.0.0.0:1230', 'expected_parts': 0},
-            {'pod_address': '0.0.0.0:1231', 'expected_parts': 1},
-            {'pod_address': '0.0.0.0:1232', 'expected_parts': 1},
-            {'pod_address': '0.0.0.0:1230', 'expected_parts': 2},
+            {'host': '0.0.0.0', 'port': 1230, 'expected_parts': 0},
+            {'host': '0.0.0.0', 'port': 1231, 'expected_parts': 1},
+            {'host': '0.0.0.0', 'port': 1232, 'expected_parts': 1},
+            {'host': '0.0.0.0', 'port': 1230, 'expected_parts': 2},
         ],
-        'edges': {'0': ['1', '2'], '1': ['3'], '2': ['3'], '3': []},
+        'edges': {
+            0: {'targets': [1, 2]},
+            1: {'targets': [3]},
+            2: {'targets': [3]},
+            3: {'targets': []},
+        },
     }
     next_routes = get_next_routes(graph)
 
     assert len(next_routes) == 2
-    assert next_routes[0].active_pod_index == '1'
-    assert next_routes[1].active_pod_index == '2'
+    assert next_routes[0].active_pod_index == 1
+    assert next_routes[1].active_pod_index == 2
 
 
 def test_nested_routing():
     graph = {
-        'active_pod_index': '0',
+        'active_pod_index': 0,
         'pods': [
-            {'pod_address': '0.0.0.0:1230', 'expected_parts': 1},
-            {'pod_address': '0.0.0.0:1231', 'expected_parts': 1},
-            {'pod_address': '0.0.0.0:1232', 'expected_parts': 1},
-            {'pod_address': '0.0.0.0:1233', 'expected_parts': 1},
-            {'pod_address': '0.0.0.0:1230', 'expected_parts': 2},
+            {'host': '0.0.0.0', 'port': 1230, 'expected_parts': 1},
+            {'host': '0.0.0.0', 'port': 1231, 'expected_parts': 1},
+            {'host': '0.0.0.0', 'port': 1232, 'expected_parts': 1},
+            {'host': '0.0.0.0', 'port': 1233, 'expected_parts': 1},
+            {'host': '0.0.0.0', 'port': 1230, 'expected_parts': 2},
         ],
-        'edges': {'0': ['1', '2'], '1': ['3'], '2': ['4'], '3': ['4'], '4': []},
+        'edges': {
+            0: {'targets': [1, 2]},
+            1: {'targets': [3]},
+            2: {'targets': [4]},
+            3: {'targets': [4]},
+            4: {'targets': []},
+        },
     }
     next_routes = get_next_routes(graph)
 
     assert len(next_routes) == 2
-    assert next_routes[0].active_pod_index == '1'
-    assert next_routes[1].active_pod_index == '2'
+    assert next_routes[0].active_pod_index == 1
+    assert next_routes[1].active_pod_index == 2
 
-    graph['active_pod_index'] = '1'
+    graph['active_pod_index'] = 1
     next_routes = get_next_routes(graph)
 
     assert len(next_routes) == 1
-    assert next_routes[0].active_pod_index == '3'
+    assert next_routes[0].active_pod_index == 3
 
-    graph['active_pod_index'] = '2'
+    graph['active_pod_index'] = 2
     next_routes = get_next_routes(graph)
 
     assert len(next_routes) == 1
-    assert next_routes[0].active_pod_index == '4'
+    assert next_routes[0].active_pod_index == 4
 
-    graph['active_pod_index'] = '3'
+    graph['active_pod_index'] = 3
     next_routes = get_next_routes(graph)
 
     assert len(next_routes) == 1
-    assert next_routes[0].active_pod_index == '4'
+    assert next_routes[0].active_pod_index == 4
 
-    graph['active_pod_index'] = '4'
+    graph['active_pod_index'] = 4
     next_routes = get_next_routes(graph)
 
     assert len(next_routes) == 0
@@ -101,15 +112,21 @@ def test_nested_routing():
 
 def test_topological_sorting():
     graph = {
-        'active_pod_index': '0',
+        'active_pod_index': 0,
         'pods': [
-            {'pod_address': '0.0.0.0:1230', 'expected_parts': 1},
-            {'pod_address': '0.0.0.0:1231', 'expected_parts': 1},
-            {'pod_address': '0.0.0.0:1232', 'expected_parts': 1},
-            {'pod_address': '0.0.0.0:1233', 'expected_parts': 1},
-            {'pod_address': '0.0.0.0:1230', 'expected_parts': 2},
+            {'host': '0.0.0.0', 'port': 1230, 'expected_parts': 1},
+            {'host': '0.0.0.0', 'port': 1231, 'expected_parts': 1},
+            {'host': '0.0.0.0', 'port': 1232, 'expected_parts': 1},
+            {'host': '0.0.0.0', 'port': 1233, 'expected_parts': 1},
+            {'host': '0.0.0.0', 'port': 1230, 'expected_parts': 2},
         ],
-        'edges': {'0': ['1', '2'], '1': ['3'], '2': ['4'], '3': ['4'], '4': []},
+        'edges': {
+            0: {'targets': [1, 2]},
+            1: {'targets': [3]},
+            2: {'targets': [4]},
+            3: {'targets': [4]},
+            4: {'targets': []},
+        },
     }
     routing_pb = jina_pb2.RoutingGraphProto()
     json_format.ParseDict(graph, routing_pb)
@@ -126,12 +143,12 @@ def test_topological_sorting():
 
 def test_cycle():
     graph = {
-        'active_pod_index': '0',
+        'active_pod_index': 0,
         'pods': [
-            {'pod_address': '0.0.0.0:1230', 'expected_parts': 1},
-            {'pod_address': '0.0.0.0:1231', 'expected_parts': 1},
+            {'host': '0.0.0.0', 'port': 1230, 'expected_parts': 1},
+            {'host': '0.0.0.0', 'port': 1231, 'expected_parts': 1},
         ],
-        'edges': {'0': ['1'], '1': ['0']},
+        'edges': {0: {'targets': [1]}, 1: {'targets': [0]}},
     }
     routing_pb = jina_pb2.RoutingGraphProto()
     json_format.ParseDict(graph, routing_pb)
@@ -141,15 +158,21 @@ def test_cycle():
 
 def test_no_cycle():
     graph = {
-        'active_pod_index': '0',
+        'active_pod_index': 0,
         'pods': [
-            {'pod_address': '0.0.0.0:1230', 'expected_parts': 1},
-            {'pod_address': '0.0.0.0:1231', 'expected_parts': 1},
-            {'pod_address': '0.0.0.0:1232', 'expected_parts': 1},
-            {'pod_address': '0.0.0.0:1233', 'expected_parts': 1},
-            {'pod_address': '0.0.0.0:1234', 'expected_parts': 1},
+            {'host': '0.0.0.0', 'port': 1230, 'expected_parts': 1},
+            {'host': '0.0.0.0', 'port': 1231, 'expected_parts': 1},
+            {'host': '0.0.0.0', 'port': 1232, 'expected_parts': 1},
+            {'host': '0.0.0.0', 'port': 1233, 'expected_parts': 1},
+            {'host': '0.0.0.0', 'port': 1234, 'expected_parts': 1},
         ],
-        'edges': {'2': ['1'], '1': ['0'], '0': ['3'], '3': ['4'], '4': []},
+        'edges': {
+            2: {'targets': [1]},
+            1: {'targets': [0]},
+            0: {'targets': [3]},
+            3: {'targets': [4]},
+            4: {'targets': []},
+        },
     }
     routing_pb = jina_pb2.RoutingGraphProto()
     json_format.ParseDict(graph, routing_pb)

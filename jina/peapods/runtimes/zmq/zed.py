@@ -365,7 +365,7 @@ class ZEDRuntime(ZMQRuntime):
         if self.message.is_data_request:
             if self.args.socket_in == SocketType.ROUTER_BIND:
                 graph = RoutingGraph(self._message.envelope.routing_graph)
-                return graph.active_expected_parts
+                return graph.active_pod.expected_parts
             else:
                 return self.args.num_part
         else:

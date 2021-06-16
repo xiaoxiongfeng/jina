@@ -54,18 +54,20 @@ def test_simple_dynamic_routing_zmqlet():
         msg = Message(None, req, 'tmp', '')
         routing_pb = jina_pb2.RoutingGraphProto()
         routing_graph = {
-            'active_pod_index': '0',
+            'active_pod_index': 0,
             'pods': [
                 {
-                    'pod_address': f'0.0.0.0:{args1.port_in}',
+                    'host': '0.0.0.0',
+                    'port': args1.port_in,
                     'expected_parts': 0,
                 },
                 {
-                    'pod_address': f'0.0.0.0:{args2.port_in}',
+                    'host': '0.0.0.0',
+                    'port': args2.port_in,
                     'expected_parts': 1,
                 },
             ],
-            'edges': {'0': ['1'], '1': []},
+            'edges': {0: {'targets': [1]}, 1: {'targets': []}},
         }
         json_format.ParseDict(routing_graph, routing_pb)
         msg.envelope.routing_graph.CopyFrom(routing_pb)
@@ -101,22 +103,25 @@ def test_double_dynamic_routing_zmqlet():
         msg = Message(None, req, 'tmp', '')
         routing_pb = jina_pb2.RoutingGraphProto()
         routing_graph = {
-            'active_pod_index': '0',
+            'active_pod_index': 0,
             'pods': [
                 {
-                    'pod_address': f'0.0.0.0:{args1.port_in}',
+                    'host': '0.0.0.0',
+                    'port': args1.port_in,
                     'expected_parts': 0,
                 },
                 {
-                    'pod_address': f'0.0.0.0:{args2.port_in}',
+                    'host': '0.0.0.0',
+                    'port': args2.port_in,
                     'expected_parts': 1,
                 },
                 {
-                    'pod_address': f'0.0.0.0:{args3.port_in}',
+                    'host': '0.0.0.0',
+                    'port': args3.port_in,
                     'expected_parts': 1,
                 },
             ],
-            'edges': {'0': ['1', '2'], '1': [], '2': []},
+            'edges': {0: {'targets': [1, 2]}, 1: {'targets': []}, 2: {'targets': []}},
         }
         json_format.ParseDict(routing_graph, routing_pb)
         msg.envelope.routing_graph.CopyFrom(routing_pb)
@@ -163,22 +168,25 @@ def test_double_dynamic_routing_async_zmqlet():
         msg = Message(None, req, 'tmp', '')
         routing_pb = jina_pb2.RoutingGraphProto()
         routing_graph = {
-            'active_pod_index': '0',
+            'active_pod_index': 0,
             'pods': [
                 {
-                    'pod_address': f'0.0.0.0:{args1.port_in}',
+                    'host': '0.0.0.0',
+                    'port': args1.port_in,
                     'expected_parts': 0,
                 },
                 {
-                    'pod_address': f'0.0.0.0:{args2.port_in}',
+                    'host': '0.0.0.0',
+                    'port': args2.port_in,
                     'expected_parts': 1,
                 },
                 {
-                    'pod_address': f'0.0.0.0:{args3.port_in}',
+                    'host': '0.0.0.0',
+                    'port': args3.port_in,
                     'expected_parts': 1,
                 },
             ],
-            'edges': {'0': ['1', '2'], '1': [], '2': []},
+            'edges': {0: {'targets': [1, 2]}, 1: {'targets': []}, 2: {'targets': []}},
         }
         json_format.ParseDict(routing_graph, routing_pb)
         msg.envelope.routing_graph.CopyFrom(routing_pb)
@@ -217,22 +225,25 @@ def test_double_dynamic_routing_zmqstreamlet():
         msg = Message(None, req, 'tmp', '')
         routing_pb = jina_pb2.RoutingGraphProto()
         routing_graph = {
-            'active_pod_index': '0',
+            'active_pod_index': 0,
             'pods': [
                 {
-                    'pod_address': f'0.0.0.0:{args1.port_in}',
+                    'host': '0.0.0.0',
+                    'port': args1.port_in,
                     'expected_parts': 0,
                 },
                 {
-                    'pod_address': f'0.0.0.0:{args2.port_in}',
+                    'host': '0.0.0.0',
+                    'port': args2.port_in,
                     'expected_parts': 1,
                 },
                 {
-                    'pod_address': f'0.0.0.0:{args3.port_in}',
+                    'host': '0.0.0.0',
+                    'port': args3.port_in,
                     'expected_parts': 1,
                 },
             ],
-            'edges': {'0': ['1', '2'], '1': [], '2': []},
+            'edges': {0: {'targets': [1, 2]}, 1: {'targets': []}, 2: {'targets': []}},
         }
         json_format.ParseDict(routing_graph, routing_pb)
         msg.envelope.routing_graph.CopyFrom(routing_pb)

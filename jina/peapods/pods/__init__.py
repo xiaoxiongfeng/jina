@@ -139,11 +139,17 @@ class BasePod(ExitFIFO):
         return self.args.name
 
     @property
-    def host_in(self):
+    def head_host(self) -> str:
+        """Get the host of the HeadPea of this pod
+        .. # noqa: DAR201
+        """
         return self.head_args.host
 
     @property
-    def port_in(self):
+    def head_port_in(self):
+        """Get the port_in of the HeadPea of this pod
+        .. # noqa: DAR201
+        """
         return self.head_args.port_in
 
     def __enter__(self) -> 'BasePod':

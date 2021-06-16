@@ -621,8 +621,8 @@ class Flow(PostMixin, JAMLCompatible, ExitStack, metaclass=FlowType):
         return (
             f'{prefix}-{GATEWAY_NAME}',
             {
-                'host': gateway_pod.host_in,
-                'port': gateway_pod.port_in,
+                'host': gateway_pod.head_host,
+                'port': gateway_pod.head_port_in,
                 'expected_parts': 0,
             },
         )
@@ -637,8 +637,8 @@ class Flow(PostMixin, JAMLCompatible, ExitStack, metaclass=FlowType):
             (
                 pod_id,
                 {
-                    'host': pod.host_in,
-                    'port': pod.port_in,
+                    'host': pod.head_host,
+                    'port': pod.head_port_in,
                     'expected_parts': 0,
                 },
             )

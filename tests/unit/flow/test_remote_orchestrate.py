@@ -111,24 +111,6 @@ def test_gateway_remote_local():
     assert f['gateway'].args.socket_out == SocketType.DEALER_CONNECT
 
 
-def test_gateway_remote_local_input_socket_pull_connect_from_remote():
-    """
-
-    remote  IN: 0.0.0.0:61913 (PULL_BIND)   0.0.0.0:61914 (PUSH_BIND)
-    pod1    IN: 3.135.17.36:61914 (PULL_CONNECT)    0.0.0.0:61918 (PUSH_BIND)
-    gateway IN: 0.0.0.0:61918 (PULL_CONNECT)    3.135.17.36:61913 (PUSH_CONNECT)
-
-    :return:
-    """
-    remote1 = '111.111.111.111'
-    f = Flow().add(host=remote1).add().build()
-
-    assert f['pod0'].args.socket_in.is_bind
-    assert not f['pod0'].args.socket_out.is_bind
-    assert f['pod1'].args.socket_in.is_bind
-    assert not f['pod1'].args.socket_out.is_bind
-
-
 def test_gateway_local_remote():
     """
 
